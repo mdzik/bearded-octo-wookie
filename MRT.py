@@ -1,12 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue May 12 15:00:07 2015
-
-@author: michal
-"""
-
-# -*- coding: utf-8 -*-
-"""
 Created on Tue May 12 12:57:41 2015
 
 @author: michal
@@ -37,24 +30,23 @@ def genFeq(_e):
 def genM(_e):
     _M = np.zeros((9,9)).tolist()
     
-    for i, v in enumerate(_e):
+    for i, v in enumerate(e):
+        xp = 0
+        if v[0] == 1.:
+            xp = 1
+        elif v[0] == -1.:
+            xp = 2
 
-        _M[0][i] = 1.
-        
-        for k in range(1,3):
-            _M[k][i] = v[k-1]
+        yp = 0
+        if v[1] == 1.:
+            yp = 1
+        elif v[1] == -1.:
+            yp = 2      
+         
+        for j, _v in enumerate(_e):
+            _M[i][j] = _v[0] ** xp * _v[1] ** yp
 
-        _M[3][i] = -Rational(4) +  Rational(3) * (v[0] * v[0] + v[1] * v[1])
-        _M[4][i] =   Rational(3) -   Rational(3) * (v[0] * v[0] + v[1] * v[1])
-        
-        for k in range(5,7):
-            _M[k][i] = -v[k-5]        
-
-        _M[7][i] = (v[0] * v[0] - v[1] * v[1]) 
-        _M[8][i] = (v[0] * v[1])         
-        
     return np.array(_M)
-
 
 def getMRT(e0):
 
