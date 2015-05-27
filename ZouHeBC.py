@@ -4,7 +4,7 @@ from sympy import *
 from fractions import Fraction
 from  bearded_octo_wookie.MRT import genFeq, getMRT
 
-W = np.array([Rational(_W) / Rational(36) for _W in W[:] * 36.])
+#W = np.array([Rational(_W) / Rational(36) for _W in W[:] * 36.])
 
 U = [var('U_0'), var('U_1')]
 rho = var('rho')
@@ -67,20 +67,20 @@ def getUBc(wall_e, ux, uy):
 
 
     
-    A = np.zeros((9,9)).tolist()
+    A = np.zeros((9,10)).tolist()
     for i in range(Q):
         if i in i_known:
             A[i][i] = 1
         elif i in i_unknown:
-            for i2 in range(Q):
-                eq = sol[ fs[i] ]
+            eq = sol[ fs[i] ]
+            for i2 in range(Q):         
                 A[i][i2] = expand(eq).coeff(ifs[i2])
-                #A[i][i2] = A[i][i2].subs(U[0], ux).subs(U[1], uy)
-                
-            #transport_f.append( lambdify(ifs, sol[ fs[i] ] ) )
-
+                eq = expand(eq - A[i][i2] * ifs[i2])
+            A[i][9] = eq
+            
+            
     f = lambdify(U, A) 
-    return f, f(ux,uy)
+    return lambda(x,y) : np.array(f(x,y), dtype=float), np.array(f(ux,uy), dtype=float)
     
     
     
@@ -143,26 +143,144 @@ def getRhoBc(wall_e, rhobc):
         
     
     unknowns.append(Un)
+    unknowns.append(U[0])
+    unknowns.append(U[1])    
+    
     sol = solve(eqs, unknowns)
 
-    for s in unknowns:
-        pprint(s)
-    sfsdfsdf
-    A = np.zeros((9,9)).tolist()
+    A = np.zeros((9,10)).tolist()
     for i in range(Q):
         if i in i_known:
             A[i][i] = 1
         elif i in i_unknown:
-            for i2 in range(Q):
-                eq = sol[ fs[i] ]
+            eq = sol[ fs[i] ]
+            for i2 in range(Q):         
                 A[i][i2] = expand(eq).coeff(ifs[i2])
-                #A[i][i2] = A[i][i2].subs(U[0], ux).subs(U[1], uy)
-                
-            #transport_f.append( lambdify(ifs, sol[ fs[i] ] ) )
+                eq = expand(eq - A[i][i2] * ifs[i2])
+            A[i][9] = eq
 
-    f = lambdify(U, A) 
-    return f, f(ux,uy)
+    f = lambdify(rho, A) 
+    return lambda(x) : np.array(f(x), dtype=float), np.array(f(rhobc), dtype=float)
     
-#print getUBc([0,1], 0., 0.01 )
-print getRhoBc([0,1], 1. )
+    
+def getDNBc(wall_e):
+    eqs = list()
+    
+    feq = genFeq(e)
+    meq, M = getMRT(e)
+       
+    t = 'f_0'
+    t2 = 'if_0'
+    for i in range(1,Q):
+        t = t + ',f_'+str(i)
+        t2 = t2 + ',if_'+str(i)
+    
+    fs = np.array([var('f_'+str(i)) for i in range(9)])
+    ifs = np.array([var('if_'+str(i)) for i in range(9)])
+
+    
+    ### incoming
+    i_known = list()
+    i_unknown = list()
+    
+    unknowns = list()
+    for i in range(1,Q):
+        if e[i][0]*wall_e[0] + e[i][1]*wall_e[1] <= 0:
+            fs[i] = ifs[i]
+            i_known.append(i)
+        else:
+            unknowns.append(fs[i])
+            i_unknown.append(i)
+    
+    fs[0] = ifs[0]
+    i_known.append(0)  
+    
+    m = M.dot(fs)
+    meq = M.dot(feq)
+    
+    
+
+    P = np.zeros((2,2)).tolist()
+    for k, v in enumerate(e):
+        Pij = np.array([  [v[j] * v[i] * ( feq[k] - fs[k] ) for j in range(2)]  for i in range(2) ])
+        P = np.array(P) + Pij
+    Pn = P.dot(wall_e)
+    
+    
+    eqs.append(m[0] - rho)    
+    
+    eqs.append(m[1] - U[0] * rho)    
+    eqs.append(m[2] - U[1] * rho)    
+    
+
+ 
+
+    ### NORMAL PART REFLECTION
+    
+#    for i in range(1,Q):
+#        for i2 in range(1,Q):
+#            if ( e[i][0] + wall_e[0] == 0  and  e[i][1] + wall_e[1] == 0 ) \
+#            and ( e[i][0] + e[i2][0] == 0 and  e[i][1] + e[i2][1] == 0 ):             
+#                    eqs.append(fs[i] - feq[i] - (fs[i2] - feq[i2]))
+#        
+#   
+   
+
+#    ux = 1.
+#    uy = 1.     
+    print eqs
+    print unknowns
+    sol = solve(eqs, unknowns)
+    print sol
+    sdfsdfsdf
+    A = np.zeros((9,10)).tolist()
+    for i in range(Q):
+        if i in i_known:
+            A[i][i] = 1
+        elif i in i_unknown:
+            eq = sol[ fs[i] ]
+            for i2 in range(Q):         
+                A[i][i2] = expand(eq).coeff(ifs[i2])
+                eq = expand(eq - A[i][i2] * ifs[i2])
+            A[i][9] = eq
+
+    f = lambdify((rho,U[0],U[1]), A) 
+    
+    unknowns = list()
+    eqs = list()    
+    nu = Rational(1.)/Rational(6.)
+
+    eqs.append(Pn[0] - rho*wall_e[0] / nu)    
+    eqs.append(Pn[1] - rho*wall_e[1] / nu)   
+    unknowns.append(U[0])
+    unknowns.append(U[1])        
+   
+    sol2 = solve(eqs, unknowns)    
+
+    f2 = lambdify([rho, fs], sol2) 
+    
+    return f, f2
+    
+    
+print getDNBc([0,1])    
+##print getUBc([0,1], 0., 0.01 )
+#fA,A = getRhoBc([1,0], 1. )
+#
+#f0 = W[:]
+#f = np.ones(10)
+#f[:-1] = f0
+#f1 = A.dot(f)
+##print f1
+#
+#rho = np.sum(f1)
+#
+#U0 = np.zeros(2)
+#for i in range(1,9):
+#    U0[0] =  U0[0] + e[i][0]*f1[i]
+#    U0[1] =  U0[1] + e[i][1]*f1[i]
+#U0[0] =  U0[0] / rho
+#U0[1] =  U0[1] / rho
+#
+#print U0
+
 
