@@ -2,7 +2,7 @@ __all__ = ["CLB" ]
 
 
 import matplotlib as mpl
-
+import matplotlib.pyplot as plt
 
 mpl.rcParams['lines.linewidth'] = 4
 mpl.rcParams['lines.markersize'] = 12

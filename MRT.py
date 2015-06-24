@@ -73,10 +73,14 @@ def getMRT_CLB_d2q9(e0):
       [0,  1, -1,  1, -1,  0,  0,  0,  0],
       [0,  0,  0,  0,  0,  1, -1,  1, -1]
       ])
-    
+    #print latex(M0)
     meq = list()
     for i, ms in enumerate( M0.dot(feq0)  ):
         meq.append(lambdify((rho, U[0], U[1]), ms))
     
     return lambda r,ux,uy: np.array([f(r,ux,uy) for f in meq]), M0
     #return  meq, M0
+if __name__ == "__main__":
+    from bearded_octo_wookie.lbm import e
+    fM, M =getMRT_CLB_d2q9(e)
+    print(latex(Matrix(M)))
