@@ -59,4 +59,24 @@ def getMRT(e0):
         meq.append(lambdify((rho, U[0], U[1]), ms))
     
     return lambda r,ux,uy: np.array([f(r,ux,uy) for f in meq]), M0
+def getMRT_CLB_d2q9(e0):
+
+    feq0 = genFeq(e0)
+    
+    M0 = np.array([[1,  1,  1,  1,  1,  1,  1,  1,  1],
+      [0,  1,  0, -1,  0,  1, -1, -1,  1],
+      [0,  0,  1,  0, -1,  1,  1, -1, -1],
+     [-4, -1, -1, -1, -1,  2,  2,  2,  2],
+      [4, -2, -2, -2, -2,  1,  1,  1,  1],
+      [0, -2,  0,  2,  0,  1, -1, -1,  1],
+      [0,  0, -2,  0,  2,  1,  1, -1, -1],
+      [0,  1, -1,  1, -1,  0,  0,  0,  0],
+      [0,  0,  0,  0,  0,  1, -1,  1, -1]
+      ])
+    
+    meq = list()
+    for i, ms in enumerate( M0.dot(feq0)  ):
+        meq.append(lambdify((rho, U[0], U[1]), ms))
+    
+    return lambda r,ux,uy: np.array([f(r,ux,uy) for f in meq]), M0
     #return  meq, M0

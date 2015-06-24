@@ -15,8 +15,9 @@ class CLBXMLHandler(xml.sax.ContentHandler):
         
     def startElement(self, name, attrs):
         if name == "Params":
-            a = dict()
+            
             for (k,v) in attrs.items():
+                a = dict()
                 if k == 'gauge':
                     a['gauge'] = float(re.findall('[-,\.,e,0-9]+', v)[0])
                 else:
@@ -25,7 +26,7 @@ class CLBXMLHandler(xml.sax.ContentHandler):
                     a['float'] = float(re.findall('[-,\.,e,0-9]+', v)[0])
                     
                 
-            self.config[a['name']] = a
+                self.config[a['name']] = a
         if name == "Geometry":
             
             for (k,v) in attrs.items():

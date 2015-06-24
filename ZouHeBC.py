@@ -80,12 +80,12 @@ def getUBc(wall_e, ux, uy):
             
             
     f = lambdify(U, A) 
-    return lambda(x,y) : np.array(f(x,y), dtype=float), np.array(f(ux,uy), dtype=float)
+    return lambda x,y : np.array(f(x,y), dtype=float), np.array(f(ux,uy), dtype=float)
     
     
     
     
-def getRhoBc(wall_e, rhobc):
+def getRhoBc(wall_e, rhobc, Utbc = 0.):
     eqs = list()
     
     feq = genFeq(e)
@@ -138,8 +138,9 @@ def getRhoBc(wall_e, rhobc):
     wall_e_t = np.array(wall_e_t[0])
     wall_e = np.array(wall_e)
     Un = var("Un")
+    Ut = var("Ut")
     eqs.append( wall_e.dot(U) - Un )   
-    eqs.append(wall_e_t.dot(U))
+    eqs.append(wall_e_t.dot(U) + Ut)
         
     
     unknowns.append(Un)
@@ -159,8 +160,8 @@ def getRhoBc(wall_e, rhobc):
                 eq = expand(eq - A[i][i2] * ifs[i2])
             A[i][9] = eq
 
-    f = lambdify(rho, A) 
-    return lambda(x) : np.array(f(x), dtype=float), np.array(f(rhobc), dtype=float)
+    f = lambdify([rho,Ut], A) 
+    return lambda x, y : np.array(f(x,y), dtype=float), np.array(f(rhobc, Utbc), dtype=float)
     
     
 def getDNBc(wall_e):
@@ -232,7 +233,7 @@ def getDNBc(wall_e):
     print unknowns
     sol = solve(eqs, unknowns)
     print sol
-    sdfsdfsdf
+    
     A = np.zeros((9,10)).tolist()
     for i in range(Q):
         if i in i_known:
@@ -262,7 +263,7 @@ def getDNBc(wall_e):
     return f, f2
     
     
-print getDNBc([0,1])    
+#print getDNBc([0,1])    
 ##print getUBc([0,1], 0., 0.01 )
 #fA,A = getRhoBc([1,0], 1. )
 #
