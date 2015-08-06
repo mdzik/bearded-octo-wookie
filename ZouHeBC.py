@@ -3,6 +3,7 @@ from bearded_octo_wookie.lbm import *
 from sympy import *
 from fractions import Fraction
 from  bearded_octo_wookie.MRT import genFeq, getMRT
+from sympy.utilities.codegen import codegen
 
 #W = np.array([Rational(_W) / Rational(36) for _W in W[:] * 36.])
 
@@ -15,7 +16,7 @@ Q = 9
 
 
 
-def getUBc(wall_e, ux, uy):
+def getUBc(wall_e, ux, uy, verbose=False):
     eqs = list()
     
     feq = genFeq(e)
@@ -65,6 +66,13 @@ def getUBc(wall_e, ux, uy):
     unknowns.append(rho)
     sol = solve(eqs, unknowns)
 
+    if verbose:
+        for s in sol:
+            pprint(s)
+            pprint(sol[s])
+            print "WWWWWWWWWWWWWWWWWW  " + str(s) + "  WWWWWWWWWWWWWWWWWWWW"
+            print ccode(sol[s], s)
+            print "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"            
 
     
     A = np.zeros((9,10)).tolist()
@@ -263,8 +271,11 @@ def getDNBc(wall_e):
     return f, f2
     
     
+    
+if __name__ == '__main__':
+    
 #print getDNBc([0,1])    
-##print getUBc([0,1], 0., 0.01 )
+    getUBc([0,1], 0., 0.01, True )
 #fA,A = getRhoBc([1,0], 1. )
 #
 #f0 = W[:]
