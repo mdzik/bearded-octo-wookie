@@ -6,42 +6,59 @@ Created on Fri Aug  7 14:09:42 2015
 
 """
 import modred as MR
-
+from RedReader import *
 
 
 class Modes:
-    def __init__(self, RedDataFilesList):
+    def __init__(self, RedDataFilesList, **kargs):
         
+        if kargs.has_key('num_modes'):
+            self.num_modes = kargs['num_modes']
+        else:
+            self.num_modes = len(RedDataFilesList)
+        Nvars = len(RedDataFilesList[0].data[0,2:])
+        N = RedDataFilesList[0].params['N']
+        podInput = np.array([ rr.data[:,2:].reshape(rr.params['N']*len(rr.data[0,2:])) for rr in RedDataFilesList ])
+        modes, self.eig_vals = MR.compute_POD_matrices_snaps_method(podInput.T, range(self.num_modes))
         
-
-        podInput = np.array([ rr[:,2:].reshape(N*Nvars) for rr in AllData ])
-    modes, eig_vals = MR.compute_POD_matrices_snaps_method(podInput.T, range(num_modes))
-
-
-
-
-
-if __name__ == '__main__':
-     import numpy as np
-
-    fname0 = '/home/mdzikowski/avio/naca0012/single_sweapt/input/fin_%d.dat'
-
-    rtfs = list()
+        self.modes = list()
     
-    for i in range(10):        
-        rtf = RedTecplotFile(fname0%i)
-        data = rtf.data
-        kappa = 1.4
-        p = (kappa-1.) * data[:,2] * ( data[:,3] - (data[:,4]**2 + data[:,5]**2) / data[:,2] / 2. )
-        rtf.appendData('p', p)  
+        for m in modes.T:
+            self.modes.append( m.reshape((N,Nvars))  )
         
-        rtfs.append( rtf )
-     
+        self.baseRedFile = RedDataFilesList[0].copyForWriting()
+        print self.baseRedFile.data.shape
+        print RedDataFilesList[0].data.shape       
+        
+        for v in RedDataFilesList[0].variables[2:]:
+            self.baseRedFile.appendVariable(v+'_mode')
+    def writeModes(self, fname):
+        for d,m in enumerate(self.modes):
+            self.baseRedFile.data[:,2:] = m
+            self.baseRedFile.writeData(fname%d)
+        
+        self.baseRedFile.data[:,2:] = np.zeros_like(self.baseRedFile.data[:,2:])
 
-     #rtf.writeData('/tmp/test.dat')
-     
-     Nvars = len(AllData[0][0,:]) - 2
 
-    num_modes = NT
-    
-    
+
+#==============================================================================
+# if __name__ == '__main__':
+#     import numpy as np
+# 
+#     fname0 = '/home/michal/avio/naca0012/single_sweapt/input/fin_%d.dat'
+# 
+#     rtfs = list()
+#     
+#     for i in range(1,10):        
+#         rtf = RedTecplotFile(fname0%i)
+#         data = rtf.data
+#         kappa = 1.4
+#         p = (kappa-1.) * data[:,2] * ( data[:,3] - (data[:,4]**2 + data[:,5]**2) / data[:,2] / 2. )
+#         rtf.appendData('p', p)  
+#         
+#         rtfs.append( rtf )
+#      
+# 
+#     modes = Modes(rtfs, num_modes=5)    
+#     modes.writeModes('/tmp/test%d.vti')
+#==============================================================================

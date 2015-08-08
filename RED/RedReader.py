@@ -11,6 +11,10 @@ import re
 import os.path
 import numpy as np
 
+
+def flatten(d):
+    return d.reshape(d.shape[0] * d.shape[1] )
+
 class GetReader:
     def __init__(self, fname):
         self.pget = libpget.PGet()
@@ -33,10 +37,13 @@ class GetReader:
 
 
 class RedTecplotFile:
-    def __init__(self, fname, useCache=True):
+    def __init__(self, fname, useCache=True, fake=False):
         self.baseFile = fname
 
         self.loaded = False 
+        
+        if fake:
+            return
         
         if useCache:
             if  os.path.isfile(fname+'.cache.npz'):
@@ -146,16 +153,29 @@ class RedTecplotFile:
         tmp[:,:-1] = self.data
         tmp[:,-1] = values
         self.data = tmp
+    def appendVariable(self, colName):
+        self.variables.append(colName)
+        print colName
+        tmp = np.zeros( (self.params['N'],len(self.variables) ) )
+        tmp[:,:-1] = self.data
+        tmp[:,-1] = np.zeros(self.params['N'])
+        self.data = tmp       
         
-        
-
+    def copyForWriting(self):
+        ret = RedTecplotFile('',False,True)
+        ret.baseFile = self.baseFile
+        ret.data = np.zeros((self.params['N'],2))
+        ret.data[:,:2] = self.data[:,:2]
+        ret.variables = self.variables[:2]
+        ret.params = self.params
+        return ret
 
 
 #==============================================================================
 # if __name__ == '__main__':
 #     import numpy as np
 #     l = np.linspace(0.,1.,100)
-#     test = RedReader('/tmp/name.get')
+#     test = GetReader('/tmp/name.get')
 #     print test.getXYList(l, 1)
 #     print test.getXY(0.5, 1)
 #==============================================================================
