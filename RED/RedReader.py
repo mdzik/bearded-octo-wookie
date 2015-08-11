@@ -27,8 +27,12 @@ class GetReader:
     def getXY(self, curve_parameter, curve_id):
         return self.pget.getCoord(int(curve_id), float(curve_parameter))
 
+    def getParam(self, pos, curve_id):
+        return self.pget.getParam(int(curve_id), pos)
 
-
+    def getParamList(self, pos, curve_id):
+        return [self.pget.getParam(int(curve_id), t) for t in pos]
+    
 
 
 
@@ -176,9 +180,15 @@ class RedTecplotFile:
 #     import numpy as np
 #     l = np.linspace(0.,1.,100)
 #     test = GetReader('/tmp/name.get')
-#     print test.getXYList(l, 1)
-#     print test.getXY(0.5, 1)
+#     xyl = test.getXYList(l, 1)
+#     print xyl
+#     xy = test.getXY(0.5, 1)
+#     print xy
+# 
+#     print test.getParamList(xyl,1) - l
+#     print test.getParam(xy, 1)
 #==============================================================================
+
 
 
 #if __name__ == '__main__':
