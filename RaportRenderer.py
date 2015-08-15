@@ -71,7 +71,7 @@ def decorate_with_alter(decorator, *args_,**kwargs_):
 
 
 
-def render(fname, processplot, processfigure):
+def render(fname, processplot, processfigure, **kwargs):
     
     data = np.load(fname)
     
@@ -84,8 +84,12 @@ def render(fname, processplot, processfigure):
             print "REPLAING: ", plot['fun_name'], plot['kwargs']
             #getattr(plt, plot['fun_name'])(*plot['args'],**plot['kwargs'])
             processplot(plot)
-        processfigure()
-    plt.show()
+        processfigure({'fid':fid})
+    if kwargs.has_key('show'):
+        if kwargs['show']:
+            plt.show()
+    else:
+        plt.show()
 
     
     
