@@ -23,12 +23,19 @@ from scipy.spatial import cKDTree
 from scipy.interpolate import interp1d 
 from scipy.interpolate import UnivariateSpline
 
-fname0 = '/home/michal/avio/naca0012/multi_sweapt_1/mach.55/input/fin_%d.dat'
+
+dir0 = '/home/michal/avio/naca0012/multi_sweapt_1/all/'
+#dir0 = '/home/michal/avio/naca0012/multi_sweapt_1/mach.65/'
+fname0 = dir0+'input/fin_%d.dat'
 geometryFile = '/home/michal/avio/naca0012/multi_sweapt_1/all/name.get'
 boundaryFile = '/home/michal/avio/naca0012/multi_sweapt_1/all/boundary.dat'
+fpoints=dir0+'designed_points'
+num_files = 121
+
 kappa = 1.4
 
-rtfs = [RedReader.RedTecplotFile(fname0%i) for i in range(1,10)]
+
+rtfs = [RedReader.RedTecplotFile(fname0%i) for i in range(1,num_files+1)]
     
 #==============================================================================
 # for rtf in rtfs:            
@@ -36,7 +43,7 @@ rtfs = [RedReader.RedTecplotFile(fname0%i) for i in range(1,10)]
 #     p = (kappa-1.) * data[:,2] * ( data[:,3] - (data[:,4]**2 + data[:,5]**2) / data[:,2] / 2. )
 #     rtf.appendData('p', p)          
 #==============================================================================
-num_modes = 9
+num_modes = 10
 modesH = POD.Modes(rtfs, num_modes=num_modes)    
 modesH.writeModes('/tmp/test%d.vti')
 
@@ -218,14 +225,27 @@ def getInformationMatric_ComputeSingleCol(test_points_, pid):
     not 'A' in locals(),
     not 'A' in globals()
 )
-def getTraceOfInverse(A):
+def getTraceOfMatrixInverse(A):
     D = np.linalg.eigvalsh(A)
-    return np.sum(1./ D)
+    if np.any(D < 0.):
+        r = np.inf
+    else:
+        r = np.sum(1./ D)
+    return r
+
+
+def getACriterion(A):
+    shape = A.shape
+    if shape[0] < shape[1]:
+        _A = A[:,:shape[0]]
+    else:
+        _A = A     
+    return getTraceOfMatrixInverse(_A.T.dot(_A))
 
 #==============================================================================
 # SHOW HOW SINGLE EXTRA POINT ALONG PROFILE CHENGE cond(A)
 #==============================================================================
-num_test_points = 1
+num_test_points = num_modes / 2
 testpoints = np.linspace(0.,1., num_test_points)
 
 testpoints0 = np.copy(testpoints)
@@ -234,9 +254,14 @@ testpoints0 = np.copy(testpoints)
 Aoptim_min = list()
 Aoptim_uniform = list()
 
-for extrapoint in range(25):
-    num_test_points = num_test_points + 1
 
+testpoints_all_combinations = list()
+
+
+for extrapoint in range(2 * num_modes):
+    print "RUN NUMBER",extrapoint,"/",2*num_modes
+    num_test_points = num_test_points + 1
+    
     _testpoints = np.array(testpoints)
 
     testpoints = np.zeros(num_test_points)
@@ -257,7 +282,7 @@ for extrapoint in range(25):
     
     
         
-    Aoptimality = np.array([ getTraceOfInverse(AA.T.dot(AA)) for AA in Amodified ])
+    Aoptimality = np.array([ getACriterion(AA) for AA in Amodified ])
     Aoptimality = Aoptimality 
     plt.semilogy(test_new_positions,Aoptimality)
     
@@ -265,8 +290,8 @@ for extrapoint in range(25):
     
     plt.grid(which='both')
 
-    print np.max(Aoptimality)
-    print np.min(Aoptimality)
+    print "Amax = ", np.max(Aoptimality)
+    print "Amin = ", np.min(Aoptimality)
     sorte = np.argsort(Aoptimality)
     
     optim = 0
@@ -280,11 +305,21 @@ for extrapoint in range(25):
             print "     repeated point ", optim_
     
     testpoints[-1] = test_new_positions[optim]
+    
+    testpoints_all_combinations.append(np.copy(testpoints))
+    
     plt.semilogy(testpoints[-1],Aoptimality[optim], 'o')
     
     Aoptim_min.append( Aoptimality[optim] )
     Aunif = getInformationMatric(np.linspace(0,1.,num_test_points))
-    Aoptim_uniform.append(getTraceOfInverse(Aunif.T.dot(Aunif)))
+    Aoptim_uniform.append(getACriterion(Aunif))
+
+
+#==============================================================================
+# SAVE DESIRABLE EXPOERIMENT POINTS
+#==============================================================================
+np.savez(fpoints, testpoints_all_combinations=testpoints_all_combinations)
+         
 
 testpoints = np.unique(testpoints)
 testpoints_uniform = np.linspace(0,1.,len(testpoints))
@@ -316,7 +351,16 @@ experiment_values_uniform  = experiment_values_interpolate(testpoints_uniform)
 
 #reconstruct coefficents
 cs_A = np.linalg.solve(A.T.dot(A),A.T.dot(experiment_values))
-cs_A0 = np.linalg.solve(A0.T.dot(A0),A0.T.dot(experiment_values0))
+initial_is_singular = False
+try:
+    cs_A0 = np.linalg.solve(A0.T.dot(A0),A0.T.dot(experiment_values0))
+except np.linalg.linalg.LinAlgError:
+    print "======================================================="
+    print "INITIAL DISTRIBUTION MATRIX IS SINGULAR!!!!!!!!!!!!!!!!"
+    print "======================================================="
+    initial_is_singular = True
+    cs_A0 = np.linalg.solve(A.T.dot(A),A.T.dot(experiment_values))    
+    
 cs_A_uniform = np.linalg.solve(A_uniform.T.dot(A_uniform),A_uniform.T.dot(experiment_values_uniform))
 
 
@@ -336,13 +380,13 @@ cs_org = np.array(cs_org)
 profile_length_param = boundary_nodes[:,0]
 
 #reconstruct full field, basing on modes. recon SHOULD BE EXACT, reconA contains error
-recon = np.squeeze(np.array(modesH.modes).T.dot(cs_org.reshape((1,9,1))))
+recon = np.squeeze(np.array(modesH.modes).T.dot(cs_org.reshape((1,num_modes,1))))
 
-reconA = np.squeeze(np.array(modesH.modes).T.dot(cs_A.reshape((1,9,1))))
+reconA = np.squeeze(np.array(modesH.modes).T.dot(cs_A.reshape((1,num_modes,1))))
 
-reconA0 = np.squeeze(np.array(modesH.modes).T.dot(cs_A0.reshape((1,9,1))))
+reconA0 = np.squeeze(np.array(modesH.modes).T.dot(cs_A0.reshape((1,num_modes,1))))
 
-reconA_uniform = np.squeeze(np.array(modesH.modes).T.dot(cs_A_uniform.reshape((1,9,1))))
+reconA_uniform = np.squeeze(np.array(modesH.modes).T.dot(cs_A_uniform.reshape((1,num_modes,1))))
 
 #plot beutifully
 field  = rtfs[0].variables[2+work_on_param]
@@ -375,9 +419,25 @@ for fid, field in enumerate(rtfs[0].variables[2:]):
    # plt.plot(profile_length_param, values)    
     v = np.zeros_like(profile_length_param)
     plt.plot(profile_length_param, recon[fid,bids],'o')
-    plt.plot(profile_length_param, reconA[fid,bids],'rx')
-    plt.plot(profile_length_param, reconA0[fid,bids],'kx')
+    #plt.plot(profile_length_param, reconA[fid,bids],'rx')
+    #plt.plot(profile_length_param, reconA0[fid,bids],'kx')
     plt.plot(profile_length_param, reconA_uniform[fid,bids],'bx')
+
+plt.figure()
+
+#plot beutifully
+for fid, field in enumerate(rtfs[0].variables[2:]):
+    print fid,field
+    plt.subplot(3,2,fid+1)
+    plt.title(field)
+    values = rtfs[0].data[bids,2+fid]    
+   # plt.plot(profile_length_param, values)    
+    v = np.zeros_like(profile_length_param)
+    plt.plot(profile_length_param, recon[fid,bids],'o')
+    plt.plot(profile_length_param, reconA[fid,bids],'rx')
+    #plt.plot(profile_length_param, reconA0[fid,bids],'kx')
+    #plt.plot(profile_length_param, reconA_uniform[fid,bids],'bx')
+
 
 
 plt.figure()
@@ -398,18 +458,19 @@ for fid, field in enumerate(rtfs[0].variables[2:]):
     err_unif = np.absolute(recon[fid,bids] - reconA_uniform[fid,bids])
     plt.semilogy(profile_length_param, err_unif,'b-')   
 
-plt.figure()
-
-for fid, field in enumerate(rtfs[0].variables[2:]):
-    print fid,field
-    plt.subplot(3,2,fid+1)
-    plt.title(field)
- 
-    err = np.absolute(reconA0[fid,bids] - reconA[fid,bids])
-    plt.semilogy(profile_length_param, err,'ro-')    
-
-    err_unif = np.absolute(reconA0[fid,bids] - reconA_uniform[fid,bids])
-    plt.semilogy(profile_length_param, err_unif,'bo-')    
+if not initial_is_singular:
+    plt.figure()
+    
+    for fid, field in enumerate(rtfs[0].variables[2:]):
+        print fid,field
+        plt.subplot(3,2,fid+1)
+        plt.title(field)
+        
+        err = np.absolute(reconA0[fid,bids] - reconA[fid,bids])
+        plt.semilogy(profile_length_param, err,'ro-')    
+    
+        err_unif = np.absolute(reconA0[fid,bids] - reconA_uniform[fid,bids])
+        plt.semilogy(profile_length_param, err_unif,'bo-')    
 
     
 plt.show()
