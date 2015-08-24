@@ -19,16 +19,15 @@ __version__ = '%s'
 __date__ = '%s'
 """
 def update_version_py():
-    if not os.path.isdir(".git"):
-        print "This does not appear to be a Git repository."
-        import bearded_octo_wookie._bow_version
-        return bearded_octo_wookie._bow_version.__version__
     try:
         p = subprocess.Popen(["git", "describe",
                               "--tags", "--dirty", "--always"],
                              stdout=subprocess.PIPE)
     except EnvironmentError:
-        print "unable to run git, leaving ecdsa/_version.py alone"
+        import bearded_octo_wookie._bow_version
+        return bearded_octo_wookie._bow_version.__version__
+        
+        print "unable to run git"
         return
     stdout = p.communicate()[0]
     
