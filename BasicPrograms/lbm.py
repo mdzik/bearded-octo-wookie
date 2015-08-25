@@ -33,22 +33,24 @@ nx0 = 25
 
 ny0 = 100
 
-nt = 10000
+nt = 2000
 
 e0 = lbm.e
 e = lbm.e
 e_opp = lbm.e_opp
 forAll9do = lbm.forAll9do
 W = lbm.W
-x0,y0 = np.meshgrid(np.arange(nx0), np.arange(ny0), indexing='xy')
-x0=x0.T
-y0=y0.T
+x0,y0 = np.meshgrid(np.arange(nx0), np.arange(ny0), indexing='ij')
+#x0=x0.T
+#y0=y0.T
 
 ################################################################
 ## INIT GRID 0
 iy0n = list()
 ix0n = list()
 ix00,iy00 = np.meshgrid(np.arange(nx0), np.arange(ny0), indexing='ij')
+#ix00=ix00.T
+#iy00=iy00.T
 
 
 bx0 = list()
@@ -62,8 +64,8 @@ by0 = list()
         
 
 for i in range(0,9):
-    ixt = np.roll(np.roll(ix00[:,:],shift=e0[i][0],axis=0),shift=e0[i][1],axis=1)
-    iyt = np.roll(np.roll(iy00[:,:],shift=e0[i][0],axis=0),shift=e0[i][1],axis=1)
+    ixt = np.roll(np.roll(ix00[:,:],shift=e0[i][1],axis=0),shift=e0[i][0],axis=1)
+    iyt = np.roll(np.roll(iy00[:,:],shift=e0[i][1],axis=0),shift=e0[i][0],axis=1)
     ix0n.append(ixt)
     iy0n.append(iyt)
     
@@ -176,17 +178,22 @@ def ubc(x,y) :
 
 ubcC = ubc
 
-BC_fun_Left, BC_A_Left = BC.getUBc([0,1], 0., 0.)
-#BC_fun_Right, BC_A_Right = BC.getRhoBc([0,-1], 1.)
-BC_fun_Right, BC_A_Right = BC.getUBc([0,-1], 0., 0.)
-#BC_fun_Left, BC_A_Left = BC.getUBc([0,1], 0., Uinf)
-#BC_fun_Right, BC_A_Right = BC.getUBc([0,-1], 0., Uinf)
-#BC_fun_Bottom, BC_A_Bottom = BC.getRhoBc([1,0], 1., Uinf)
-#BC_fun_Top, BC_A_Top = BC.getRhoBc([-1,0], 1., Uinf)
-BC_fun_Top, BC_A_Top = BC.getUBc([-1,0], 0., 0.0)
-BC_fun_Bottom, BC_A_Bottom = BC.getUBc([1,0], 0., 0.)
+#==============================================================================
+# BC_fun_Left, BC_A_Left = BC.getUBc([0,1], 0., 0.)
+# BC_fun_Right, BC_A_Right = BC.getUBc([0,-1], 0., 0.)
+# BC_fun_Top, BC_A_Top = BC.getUBc([-1,0], 0., 0.0)
+# BC_fun_Bottom, BC_A_Bottom = BC.getUBc([1,0], 0., 0.)
+#==============================================================================
 
+e_l = np.array([1,0])
+e_r = np.array([-1,0])
+e_t = np.array([0,-1])
+e_b = np.array([0,1])
 
+BC_fun_Left, BC_A_Left = BC.getUBc(e_l, 0., 0.)
+BC_fun_Right, BC_A_Right = BC.getUBc(e_r, 0., 0.)
+BC_fun_Top, BC_A_Top = BC.getUBc(e_t, 0., 0.0)
+BC_fun_Bottom, BC_A_Bottom = BC.getUBc(e_b, 0., 0.)
 
 
 
@@ -216,11 +223,11 @@ BC_A_Bottom = np.array(BC_A_Bottom)
 
 
 
-BC_fun_Left_Top, BC_A_Left_Top = BC.getCornerUBc([-1,1], 0., 0.)
-BC_fun_Left_Bottom, BC_A_Left_Bottom = BC.getCornerUBc([1,1], 0., 0.)
+BC_fun_Left_Top, BC_A_Left_Top = BC.getCornerUBc(e_l+e_t, 0., 0.)
+BC_fun_Left_Bottom, BC_A_Left_Bottom = BC.getCornerUBc(e_l+e_b, 0., 0.)
 
-BC_fun_Right_Top, BC_A_Right_Top = BC.getCornerUBc([-1,-1], 0., 0.)
-BC_fun_Right_Bottom, BC_A_Right_Bottom = BC.getCornerUBc([1,-1], 0., 0.)
+BC_fun_Right_Top, BC_A_Right_Top = BC.getCornerUBc(e_r+e_t, 0., 0.)
+BC_fun_Right_Bottom, BC_A_Right_Bottom = BC.getCornerUBc(e_r+e_b, 0., 0.)
 
 
 
@@ -297,24 +304,24 @@ for it in range(nt):
         plt.cla()
         
         plt.subplot(2,2,1)
-        #plt.contourf(x0,y0,U0[:,:,0])
-        plt.imshow(U0[:,:,0],interpolation='nearest')
-        print np.max(np.sqrt(U0[:,:,0]**2))
+        plt.contourf(x0,y0,U0[:,:,0])
+        #plt.imshow(U0[:,:,0],interpolation='nearest')
+        #print np.max(np.sqrt(U0[:,:,0]**2))
         plt.colorbar()        
         
         plt.subplot(2,2,2)
-        #plt.contourf(x0,y0,U0[:,:,1])        
-        plt.imshow(U0[:,:,1],interpolation='nearest')
+        plt.contourf(x0,y0,U0[:,:,1])        
+        #plt.imshow(U0[:,:,1],interpolation='nearest')
         print np.max(np.sqrt(U0[:,:,1]**2))
         plt.colorbar()        
     
         plt.subplot(2,2,3)
         #plt.contourf(ix00,iy00,np.sqrt(U0[:,:,0]**2 + U0[:,:,1]**2))
-        plt.streamplot(np.arange(ny0),np.arange(nx0),U0[:,:,1], U0[:,:,0] )
-        
+        plt.quiver(x0,y0,U0[:,:,0], U0[:,:,1] )
+        plt.streamplot(np.arange(nx0),np.arange(ny0),U0[:,:,0].T,U0[:,:,1].T)
         plt.subplot(2,2,4)
-        #plt.contourf(x0,y0,U0[:,:,1])        
-        plt.imshow(rho0[:,:],interpolation='nearest')
+        plt.contourf(x0,y0,rho0[:,:])        
+        #plt.imshow(rho0[:,:],interpolation='nearest')
         plt.colorbar()
        
 
