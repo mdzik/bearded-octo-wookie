@@ -10,6 +10,10 @@ import libpget
 import re
 import os.path
 import numpy as np
+from bearded_octo_wookie.version import *
+
+__version__ = update_version_py()
+
 
 
 def flatten(d):
@@ -36,14 +40,26 @@ class GetReader:
 
 
 
-
-
-
+class nonConservative2D:
+    
+    variables = {
+    'X': 'X',
+    'Y': 'Y',
+    'V01': 'Rho',
+    'V02': 'P',
+    'V03': 'U',
+    'V04': 'V',
+    }
+    @staticmethod
+    def __call__(row):
+        kappa = 1.4
+        p = (kappa-1.) * row[2] * ( row[3] - (row[4]**2 + row[5]**2) / row[2] / 2. )        
+        return [ row[0], row[1], row[2], p, row[4] / row[2] , row[5] / row[2]  ]
 
 class RedTecplotFile:
-    def __init__(self, fname, useCache=True, fake=False):
+    def __init__(self, fname, useCache=True, fake=False, rowProcessor=nonConservative2D()):
         self.baseFile = fname
-
+        self.rowProcessor = rowProcessor
         self.loaded = False 
         
         if fake:
@@ -52,11 +68,16 @@ class RedTecplotFile:
         if useCache:
             if  os.path.isfile(fname+'.cache.npz'):
                 fdata  = np.load(fname+'.cache.npz')
-                self.params = fdata['params'].tolist()
-                self.variables = fdata['variables'].tolist()
-                self.data = fdata['data']
-                self.loaded = True
-            
+                try:
+                    self.params = fdata['params'].tolist()
+                    self.variables = fdata['variables'].tolist()
+                    self.data = fdata['data']
+                    self.writer_version = fdata['writer_version']                    
+                    if not self.writer_version == __version__:
+                        print "=> READER VERSION INVALIDATES CACHE"
+                        self.loaded = True
+                except KeyError:
+                    pass
 
         if not self.loaded:
             
@@ -69,7 +90,11 @@ class RedTecplotFile:
                 n = n + 1
                 if re.match('.*VARIABLES.*', line):
                     for var in re.findall('"([a-zA-Z,0-9]*)"',line):
-                        self.variables.append(var)
+                        #do not import variable we dont know
+                        if self.rowProcessor.variables.has_key(var):
+                            self.variables.append(self.rowProcessor.variables[var])
+                        else:
+                            print "skipping unknown var: ", var
                     break
                 if n > 5:
                     break
@@ -92,7 +117,7 @@ class RedTecplotFile:
             self.readData(False)
             
             if useCache:
-                np.savez(fname+'.cache.npz', params=self.params, variables=self.variables, data=self.data)
+                np.savez(fname+'.cache.npz', params=self.params, variables=self.variables, data=self.data, writer_version=__version__)
 
     def readData(self, useCache=True):
         
@@ -104,10 +129,15 @@ class RedTecplotFile:
             self.loaded = False
             if  os.path.isfile(self.baseFile+'.cache.npz'):
                 fdata  = np.load(self.baseFile+'.cache.npz')
-                self.params = fdata['params']
-                self.variables = fdata['variables'].tolist()
-                self.data = fdata['data']
-                self.loaded = True
+                try:
+                    self.params = fdata['params'].tolist()
+                    self.variables = fdata['variables'].tolist()
+                    self.data = fdata['data']
+                    self.writer_version = fdata['writer_version']                    
+                    if self.writer_version == __version__:
+                        self.loaded = True
+                except KeyError:
+                    pass
 
         if not self.loaded:
             
@@ -124,7 +154,7 @@ class RedTecplotFile:
                     datarow = list()
                     for num in re.findall('[0-9,\.,\-,e]+', line):
                         datarow.append(float(num))
-                    data.append(datarow)
+                    data.append(self.rowProcessor(datarow))
                         
                             
                     r = r + 1
@@ -191,14 +221,13 @@ class RedTecplotFile:
 
 
 
-#if __name__ == '__main__':
-#     import numpy as np
-#    
-#     rtf = RedTecplotFile('/home/mdzikowski/avio/naca0012/single_sweapt/input/fin_10.dat')
-#     
-#     data = rtf.data
-#     kappa = 1.4
+if __name__ == '__main__':
+     import numpy as np
+    
+     rtf = RedTecplotFile('/home/mdzikowski/avio/naca0012/single_sweapt/input/fin_10.dat')
+     
+     data = rtf.data
+     kappa = 1.4
 #     p = (kappa-1.) * data[:,2] * ( data[:,3] - (data[:,4]**2 + data[:,5]**2) / data[:,2] / 2. )
-#     rtf.appendData('p', p)
-#     rtf.writeData('/tmp/test.dat')
+     rtf.writeData('/tmp/test.dat')
 

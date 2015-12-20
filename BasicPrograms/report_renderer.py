@@ -33,7 +33,7 @@ pidh = PidH()
 
 f_fig_tpl = '/tmp/figure.tex'
 #fig_tpl = 'figure.tex'
-fig_tpl = ''.join(file(f_fig_tpl).readlines())
+#fig_tpl = ''.join(file(f_fig_tpl).readlines())
 
 odname = '/tmp/'
 file_format = 'eps'
@@ -45,17 +45,17 @@ def pf(*args, **kwargs):
     plt.grid(which='both')
 
     
-    ofname = 'test'+str(pidh.pid)
-    plt.savefig(odname+ofname+'.'+file_format, dpi=300)
-
-    tpl_data = {
-        'FILE_NAME':ofname+'.'+file_format,
-        'LABEL': 'label',
-        'DESC':'desc'
-    }
-    file(odname+ofname+'.tex','w').writelines( fig_tpl%tpl_data )
-    pidh.pid = pidh.pid + 1
-    pidh.allFigs.append(ofname+'.tex')
+#    ofname = 'test'+str(pidh.pid)
+#    plt.savefig(odname+ofname+'.'+file_format, dpi=300)
+#
+#    tpl_data = {
+#        'FILE_NAME':ofname+'.'+file_format,
+#        'LABEL': 'label',
+#        'DESC':'desc'
+#    }
+#    file(odname+ofname+'.tex','w').writelines( fig_tpl%tpl_data )
+#    pidh.pid = pidh.pid + 1
+#    pidh.allFigs.append(ofname+'.tex')
 
 
 
@@ -66,7 +66,7 @@ def pp(*args, **kwargs):
     pass
 
 
-render('/tmp/raport.npz', pp, pf, show=False)
+render('/tmp/raport.npz', pp, pf, show=True)
     
 
 final = file(odname+'final.tex','w')
