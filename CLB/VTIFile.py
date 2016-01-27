@@ -7,7 +7,7 @@ Created on Tue Apr 28 15:56:27 2015
 
 import vtk
 import vtk.util.numpy_support as VN
-
+import numpy as np
 class VTIFile:
     def __init__(self, vtifname, parallel=False):
         if parallel:
@@ -20,12 +20,20 @@ class VTIFile:
         self.dim = self.data.GetDimensions()   
         self.s_scal = [self.dim[1]-1, self.dim[0]-1]
         self.s_vec = [self.dim[1]-1, self.dim[0]-1,3]
-
+        self.trim_0 = [0,0]
+        self.trim_1 = [x -1  for x in self.dim ]
     def get(self, name, vector=False):
+        
         if vector:
-            return VN.vtk_to_numpy(self.data.GetCellData().GetArray(name)).reshape(self.s_vec)
+            subspace = np.meshgrid(
+                np.arange(self.trim_0[0],self.trim_1[0]),
+                np.arange(self.trim_0[1],self.trim_1[1]),
+                np.arange(3)
+            )
+            return np.transpose(VN.vtk_to_numpy(self.data.GetCellData().GetArray(name)).reshape(self.s_vec),(1,0,2))[subspace]
         else:
-            return VN.vtk_to_numpy(self.data.GetCellData().GetArray(name)).reshape(self.s_scal)
+            subspace = np.meshgrid(*[ np.arange(self.trim_0[i],self.trim_1[i]) for i in range(2) ])
+            return VN.vtk_to_numpy(self.data.GetCellData().GetArray(name)).reshape(self.s_scal).T[subspace]
  
     def spacing(self,i=0):
         return self.data.GetSpacing()[i]           
@@ -37,3 +45,9 @@ class VTIFile:
     def len(self,i=0):
         return self.s_scal[i]
             
+    def trim(self, **kwargs):
+        self.trim_0[0] = kwargs['x0']
+        self.trim_1[0] = self.trim_1[0] + kwargs['x1']
+        
+    def getMeshGrid(self):
+        return np.meshgrid(*[ np.arange(self.dim[i]) for i in range(2) ])
