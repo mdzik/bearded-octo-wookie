@@ -176,6 +176,12 @@ class CLBConfigWriter:
         kwargs['_xml_node_name'] = 'Wall'
         return kwargs
 
+    @requireArg('file')
+    @geometryElement
+    def addText(self, **kwargs):
+        kwargs['_xml_node_name'] = 'Text'
+        return kwargs        
+
 ##############
 #  END ELEMENT FUNCTIONS, END CLASS
 #############
