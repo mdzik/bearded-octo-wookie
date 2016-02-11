@@ -41,7 +41,7 @@ class GetReader:
 
 
 class nonConservative2D:
-    
+    has_list = True
     variables = {
     'X': 'X',
     'Y': 'Y',
@@ -55,6 +55,13 @@ class nonConservative2D:
         kappa = 1.4
         p = (kappa-1.) * row[2] * ( row[3] - (row[4]**2 + row[5]**2) / row[2] / 2. )        
         return [ row[0], row[1], row[2], p, row[4] / row[2] , row[5] / row[2]  ]
+
+
+class doNothing:
+    has_list = False
+    @staticmethod
+    def __call__(row):
+        return row
 
 class RedTecplotFile:
     def __init__(self, fname, useCache=True, fake=False, rowProcessor=nonConservative2D()):
@@ -73,9 +80,10 @@ class RedTecplotFile:
                     self.variables = fdata['variables'].tolist()
                     self.data = fdata['data']
                     self.writer_version = fdata['writer_version']                    
-                    if not self.writer_version == __version__:
-                        print "=> READER VERSION INVALIDATES CACHE"
-                        self.loaded = True
+                    self.loaded = True
+                    #if not self.writer_version == __version__:
+                    #    print "=> READER VERSION INVALIDATES CACHE"
+                    #    self.loaded = False
                 except KeyError:
                     pass
 
@@ -89,12 +97,15 @@ class RedTecplotFile:
             for line in file(fname):
                 n = n + 1
                 if re.match('.*VARIABLES.*', line):
-                    for var in re.findall('"([a-zA-Z,0-9]*)"',line):
+                    for var in re.findall('"([a-zA-Z,0-9,\_]*)"',line):
                         #do not import variable we dont know
-                        if self.rowProcessor.variables.has_key(var):
-                            self.variables.append(self.rowProcessor.variables[var])
+                        if self.rowProcessor.has_list:
+                            if self.rowProcessor.variables.has_key(var):
+                                self.variables.append(self.rowProcessor.variables[var])
+                            else:
+                                    print "skipping unknown var: ", var
                         else:
-                            print "skipping unknown var: ", var
+                            self.variables.append(var)                            
                     break
                 if n > 5:
                     break
@@ -134,8 +145,9 @@ class RedTecplotFile:
                     self.variables = fdata['variables'].tolist()
                     self.data = fdata['data']
                     self.writer_version = fdata['writer_version']                    
-                    if self.writer_version == __version__:
-                        self.loaded = True
+                    self.loaded = True
+#                    if self.writer_version == __version__:
+#                        self.loaded = True
                 except KeyError:
                     pass
 
@@ -171,7 +183,8 @@ class RedTecplotFile:
             for line in file(fname):
                 n = n + 1
                 if n == 2:        
-                    fp.write('VARIABLES = ' + ",". join(self.variables) + '\n')        
+                    vtmp = ['"'+v+'"' for v in self.variables]
+                    fp.write('VARIABLES = ' + ",". join(vtmp) + '\n')        
                 elif n > 3 and  n < 4 + N:
                     fp.write(" ".join([ str(q) for q in self.data[n-4,:]]))
                     fp.write("\n")
@@ -205,29 +218,30 @@ class RedTecplotFile:
         return ret
 
 
+if __name__ == '__main__':
+    import numpy as np
+    l = np.linspace(0.,1.,100)
+    test = GetReader('/tmp/name.get')
+#    xyl = test.getXYList(l, 1)
+ #   print xyl
+    print test.getParam([-0.07055822593210988, 0.5135310464537162], 1)
+    xy = test.getXY(0.5, 1)
+    print xy
+
+    #print test.getParamList(xyl,1) - l
+    
+
+
+
 #==============================================================================
 # if __name__ == '__main__':
-#     import numpy as np
-#     l = np.linspace(0.,1.,100)
-#     test = GetReader('/tmp/name.get')
-#     xyl = test.getXYList(l, 1)
-#     print xyl
-#     xy = test.getXY(0.5, 1)
-#     print xy
-# 
-#     print test.getParamList(xyl,1) - l
-#     print test.getParam(xy, 1)
+#      import numpy as np
+#     
+#      rtf = RedTecplotFile('/home/mdzikowski/avio/naca0012/single_sweapt/input/fin_10.dat')
+#      
+#      data = rtf.data
+#      kappa = 1.4
+# #     p = (kappa-1.) * data[:,2] * ( data[:,3] - (data[:,4]**2 + data[:,5]**2) / data[:,2] / 2. )
+#      rtf.writeData('/tmp/test.dat')
 #==============================================================================
-
-
-
-if __name__ == '__main__':
-     import numpy as np
-    
-     rtf = RedTecplotFile('/home/mdzikowski/avio/naca0012/single_sweapt/input/fin_10.dat')
-     
-     data = rtf.data
-     kappa = 1.4
-#     p = (kappa-1.) * data[:,2] * ( data[:,3] - (data[:,4]**2 + data[:,5]**2) / data[:,2] / 2. )
-     rtf.writeData('/tmp/test.dat')
 

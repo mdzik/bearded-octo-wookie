@@ -351,9 +351,10 @@ def getDNBc(wall_e):
     
     
 if __name__ == '__main__':
-    
+    import numpy as np
 #print getDNBc([0,1])    
-    getCornerUBc([1,1], 0., 0.01, True )
+#getCornerUBc([1,1], 0., 0.01, True )
+    print getRhoBc([1,0.25], 1. )
 #fA,A = getRhoBc([1,0], 1. )
 #
 #f0 = W[:]

@@ -8,7 +8,7 @@ Created on Tue Apr 28 15:56:27 2015
 import numpy as np
 import vtk
 import vtk.util.numpy_support as VN
-
+import numpy as np
 class VTIFile:
     def __init__(self, vtifname, parallel=False):
         if parallel:
@@ -47,7 +47,7 @@ class VTIFile:
             
     def len(self,i=0):
         return self.s_scal[i]
-        
+
     def trim(self, **kwargs):
             for i,k in enumerate(['x0', 'y0']):
                 if kwargs.has_key(k):
