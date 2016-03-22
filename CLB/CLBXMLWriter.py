@@ -91,12 +91,18 @@ def addSimpleBCElements(nameList):
     'Box',
     'Sphere',
     'HalfSphere',
+    'OffgridSphere',
+    'Outlet',
+    'Inlet'
     ])
 @addSimpleBCElements([
     'MRT',
     'RightSymmetry',
     'TopSymmetry',    
-    'None',
+    'BottomSymmetry',    
+    'None',    
+    'EPressure',
+    'WPressure',
     ])    
 class CLBConfigWriter:
 
