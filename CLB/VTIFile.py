@@ -47,7 +47,7 @@ class VTIFile:
         return self.data.GetSpacing()[i]           
         
     def axisIterator(self,i=0,start=0, step=1):
-        for j in range(start, self.s_scal[i], step):
+        for j in range(start, self.trim_1[i]-self.trim_0[i], step):
             yield j
             
     def len(self,i=0):
@@ -56,13 +56,13 @@ class VTIFile:
     def trim(self, **kwargs):
             for i,k in enumerate(['x0', 'y0']):
                 if kwargs.has_key(k):
-                    self.trim_0[i] = kwargs[k]
+                    self.trim_0[i] = int(kwargs[k])
             for i,k in enumerate(['x1', 'y1']):
                 if kwargs.has_key(k):
                     if kwargs[k] < 0:
-                        self.trim_1[i] = self.trim_1[i] + kwargs[k]
+                        self.trim_1[i] = self.trim_1[i] + int(kwargs[k])
                     else:
-                        self.trim_1[i] = kwargs[k]
+                        self.trim_1[i] = int(kwargs[k])
                     
     def getMeshGrid(self):
         return np.meshgrid(*[range(self.trim_0[i],self.trim_1[i]) for i in range(2) ])
