@@ -158,6 +158,7 @@ class CLBConfigWriter:
         self.current_geometry = cg
         
     def addSolve(self, iterations=1, vtk=0, log=0):
+        self.model = ET.SubElement(self.root, 'Model')
         n = ET.SubElement(self.root, 'Solve')
         n.set('Iterations', str(iterations))
         if vtk > 0:
