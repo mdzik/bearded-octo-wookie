@@ -97,6 +97,7 @@ def addSimpleBCElements(nameList):
     'RightSymmetry',
     'TopSymmetry',    
     'None',
+    'MovingWall',
     ])    
 class CLBConfigWriter:
 
