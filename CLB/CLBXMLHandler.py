@@ -10,15 +10,31 @@ import re
 import numpy as np
 class CLBXMLHandler(xml.sax.ContentHandler):
     
-    def __init__(self, config_ref, mp):
+    def __init__(self, config_ref, mp, time):
         self.config = config_ref
         self.mp = mp
+        self.iterations = 0
+        self.time =  time
+        self.rewind = False
         if self.mp:
             self.startElement = self.startElement_mp
         else:
             self.startElement = self.startElement_sp            
         
     def startElement_sp(self, name, attrs):
+        
+        if name == "Solve":
+            iters = attrs.items()
+            if self.iterations >= self.time:
+                self.rewind = True
+            for (k,v) in iters:
+                if k == 'Iterations':
+                    self.iterations = self.iterations + int(v)
+            
+                
+        if self.rewind:
+                return
+        
         if name == "Params":
             a = dict()
             for (k,v) in attrs.items():
@@ -36,6 +52,7 @@ class CLBXMLHandler(xml.sax.ContentHandler):
                         print "No value: ", k, v
                         a['float'] = np.nan
             self.config[a['name']] = a
+            self.config[a['name']]['time'] = self.iterations
         if name == "Geometry":
             
             for (k,v) in attrs.items():
@@ -50,6 +67,9 @@ class CLBXMLHandler(xml.sax.ContentHandler):
                     else:
                         a['float'] = np.nan                            
                     self.config[a['name']] = a
+
+            
+                    
     def startElement_mp(self, name, attrs):
         if name == "Params":
             
@@ -91,7 +111,12 @@ def parseConfig(fconfig, **kwargs):
         mp = True
     else:
         mp = False
-    parser.setContentHandler(CLBXMLHandler(CLBc, mp))
+        
+    if kwargs.has_key('time'):
+        time = kwargs['time']
+    else:
+        time = 0
+    parser.setContentHandler(CLBXMLHandler(CLBc, mp, time))
     parser.parse(open(fconfig,"r"))
 
     
