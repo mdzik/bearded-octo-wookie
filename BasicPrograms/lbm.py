@@ -101,7 +101,7 @@ def BGK(_i, _U, _rho, _e, _W, _tau, _F, _fin, _fou):
 
 def BB(_i, _bx, _by, _e_opp, _fin, _fou):
     for bx,by in zip(_bx,_by):  
-        _fou[bx,by,_i] = _fin[bx,by,_e_opp[_i]]     
+        _fou[bx,by,_i] = _fin[bx,by,_e_opp[_i]]
 
 
 
