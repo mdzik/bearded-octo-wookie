@@ -11,20 +11,28 @@
 d_cases='\/home\/mdzik\/cases\/'
 neptun_cases='/mnt/neptun/mdzik/cases'
 prometheus_cases='/net/scratch/people/plgmdzikowski/cases'
+rysy_cases='/home/mdzik/cases/'
+
 
 function neptun() {
     ssh neptun
 }
 
+
+
 function prometheus() {
-    if test ! -e "~/.ssh/prometheus:22";
+    if ! ssh -O check prometheus;
     then
       pass -c plgrid/main 
     fi
     ssh prometheus
 }
 
-
+function rysy() {
+    if ! ssh -O check icm;
+        ssh -N -f -M  icm
+    ssh icmrysy
+}
 
 function from_host {
     v="sed s/$d_cases//g"
@@ -40,7 +48,7 @@ function from_host {
     r=" $1:'$2/$d/' ./"
     echo "Running: $r"
     sleep 3 
-    rsync  --include='*/' --include="$m" --exclude='*' -h -a -P --info=progress  ${(z)r}
+    rsync  --include='*/' --include="$m" --exclude='*' -h -a -P -L --info=progress  ${(z)r}
 
     notify-send "Transfer finished"
 }
@@ -60,7 +68,7 @@ function to_host {
     echo "Running: ${(z)r}"
     sleep 3 
     
-    rsync  --include='*/' --include="$m" --exclude='*' -h -a -P --info=progress  ${(z)r}
+    rsync  --include='*/' --include="$m" --exclude='*' -h -a -P -L --info=progress  ${(z)r}
     
     notify-send "Transfer finished"
 
@@ -81,6 +89,15 @@ function from_pr {
 function to_pr {
     to_host "prometheus" "$prometheus_cases" $1
 }
+
+function to_rysy {
+    to_host "icmrysy" "$rysy_cases" $1
+}
+
+function from_rysy {
+    from_host "icmrysy" "$rysy_cases" $1 
+}
+
 
 
 function make_tclb {
